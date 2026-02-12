@@ -28,15 +28,5 @@
         "audio_url": "https://raw.githubusercontent.com/snnmt/radiokhuyennong/main/amthanh/testamthanhkythuatcanhtacbuoi.mp3",
         "image_url": "https://raw.githubusercontent.com/snnmt/radiomattran/main/hinhanh/nongthonmoi.jpg",
         "last_updated": "08/02/2026"
-    },
-    {
-        "id": 1,
-        "title": "Thông báo Lịch tiếp xúc cử tri trước kỳ họp HĐND xã",
-        "category": "Tin Hoạt Động",
-        "description": "Lịch tiếp xúc cử tri của Tổ đại biểu HĐND xã tại ấp Bình An và ấp Tân Lược.",
-        "pdf_url": "https://raw.githubusercontent.com/snnmt/radiomattran/main/tinhoatdong/lichtiepxuc_quy1.pdf",
-        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-        "image_url": "https://raw.githubusercontent.com/snnmt/radiomattran/main/hinhanh/tiepxuccutri.jpg",
-        "last_updated": "05/02/2026"
     }
 ]
