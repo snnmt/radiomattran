@@ -1,22 +1,42 @@
 [
     {
         "id": 4,
-        "title": "Tất bật chăm sóc hoa màu phục vụ Tết",
-        "category": "Trồng trọt",
-        "description": "Tất bật chăm sóc hoa màu phục vụ Tết",
-        "pdf_url": "",
+        "title": "Phát động ủng hộ Quỹ 'Vì người nghèo' năm 2026",
+        "category": "An Sinh Xã Hội",
+        "description": "Kêu gọi các tổ chức, cá nhân chung tay hỗ trợ hộ nghèo, hộ khó khăn đột xuất.",
+        "pdf_url": "https://raw.githubusercontent.com/snnmt/radiomattran/main/ansinhxahoi/kehoach_quy_2026.pdf",
         "audio_url": "https://raw.githubusercontent.com/snnmt/radiokhuyennong/main/amthanh/radio_1770350492.mp3",
-        "image_url": "https://raw.githubusercontent.com/snnmt/radiokhuyennong/main/hinhanh/upload_1770350491.jpg",
-        "last_updated": "06/02/2026"
+        "image_url": "https://raw.githubusercontent.com/snnmt/radiomattran/main/hinhanh/quynguoingheo.jpg",
+        "last_updated": "12/02/2026"
+    },
+    {
+        "id": 3,
+        "title": "Tuyên truyền những điểm mới của Luật Đất đai (sửa đổi)",
+        "category": "Pháp Luật",
+        "description": "Phổ biến các quy định mới liên quan đến quyền lợi của người dân khi thu hồi đất.",
+        "pdf_url": "https://raw.githubusercontent.com/snnmt/radiomattran/main/tailieu/luatdatdai_tomtat.pdf",
+        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+        "image_url": "https://raw.githubusercontent.com/snnmt/radiomattran/main/hinhanh/tuyentruyenphapluat.jpg",
+        "last_updated": "10/02/2026"
+    },
+    {
+        "id": 2,
+        "title": "Ra quân dọn dẹp vệ sinh tuyến đường hoa kiểu mẫu",
+        "category": "Nông Thôn Mới",
+        "description": "Mặt trận xã phối hợp các đoàn thể ra quân thực hiện tiêu chí môi trường sáng - xanh - sạch - đẹp.",
+        "pdf_url": "",
+        "audio_url": "https://raw.githubusercontent.com/snnmt/radiokhuyennong/main/amthanh/testamthanhkythuatcanhtacbuoi.mp3",
+        "image_url": "https://raw.githubusercontent.com/snnmt/radiomattran/main/hinhanh/nongthonmoi.jpg",
+        "last_updated": "08/02/2026"
     },
     {
         "id": 1,
-        "title": "Kỹ thuật trồng Sầu Riêng nghịch vụ",
-        "category": "Trồng trọt",
-        "description": "Hướng dẫn xử lý ra hoa, đậu trái mùa nghịch cho năng suất cao.",
-        "pdf_url": "https://raw.githubusercontent.com/snnmt/radiokhuyennong/main/trongtrot/kythuatcanhtacbuoi.pdf",
-        "audio_url": "https://raw.githubusercontent.com/snnmt/radiokhuyennong/main/amthanh/testamthanhkythuatcanhtacbuoi.mp3",
-        "image_url": "https://raw.githubusercontent.com/snnmt/radiokhuyennong/main/hinhanh/fruits18.jpg",
-        "last_updated": "24/01/2026"
+        "title": "Thông báo Lịch tiếp xúc cử tri trước kỳ họp HĐND xã",
+        "category": "Tin Hoạt Động",
+        "description": "Lịch tiếp xúc cử tri của Tổ đại biểu HĐND xã tại ấp Bình An và ấp Tân Lược.",
+        "pdf_url": "https://raw.githubusercontent.com/snnmt/radiomattran/main/tinhoatdong/lichtiepxuc_quy1.pdf",
+        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+        "image_url": "https://raw.githubusercontent.com/snnmt/radiomattran/main/hinhanh/tiepxuccutri.jpg",
+        "last_updated": "05/02/2026"
     }
 ]
