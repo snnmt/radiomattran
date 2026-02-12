@@ -1,5 +1,15 @@
 [
     {
+        "id": 5,
+        "title": "Nâng mức cho vay chương trình hỗ trợ tạo việc làm, duy trì, mở rộng việc làm",
+        "category": "Tin Hoạt Động",
+        "description": "Nâng mức cho vay chương trình hỗ trợ tạo việc làm, duy trì, mở rộng việc làm",
+        "pdf_url": "",
+        "audio_url": "https://raw.githubusercontent.com/snnmt/radiomattran/main/amthanh/radio_1770862588.mp3",
+        "image_url": "https://raw.githubusercontent.com/snnmt/radiomattran/main/hinhanh/up_1770862587.png",
+        "last_updated": "12/02/2026"
+    },
+    {
         "id": 4,
         "title": "Phát động ủng hộ Quỹ 'Vì người nghèo' năm 2026",
         "category": "An Sinh Xã Hội",
