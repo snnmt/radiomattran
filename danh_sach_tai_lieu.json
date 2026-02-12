@@ -1,0 +1,22 @@
+[
+    {
+        "id": 4,
+        "title": "Tất bật chăm sóc hoa màu phục vụ Tết",
+        "category": "Trồng trọt",
+        "description": "Tất bật chăm sóc hoa màu phục vụ Tết",
+        "pdf_url": "",
+        "audio_url": "https://raw.githubusercontent.com/snnmt/radiokhuyennong/main/amthanh/radio_1770350492.mp3",
+        "image_url": "https://raw.githubusercontent.com/snnmt/radiokhuyennong/main/hinhanh/upload_1770350491.jpg",
+        "last_updated": "06/02/2026"
+    },
+    {
+        "id": 1,
+        "title": "Kỹ thuật trồng Sầu Riêng nghịch vụ",
+        "category": "Trồng trọt",
+        "description": "Hướng dẫn xử lý ra hoa, đậu trái mùa nghịch cho năng suất cao.",
+        "pdf_url": "https://raw.githubusercontent.com/snnmt/radiokhuyennong/main/trongtrot/kythuatcanhtacbuoi.pdf",
+        "audio_url": "https://raw.githubusercontent.com/snnmt/radiokhuyennong/main/amthanh/testamthanhkythuatcanhtacbuoi.mp3",
+        "image_url": "https://raw.githubusercontent.com/snnmt/radiokhuyennong/main/hinhanh/fruits18.jpg",
+        "last_updated": "24/01/2026"
+    }
+]
