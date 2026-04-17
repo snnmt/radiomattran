@@ -1,5 +1,15 @@
 [
     {
+        "id": 7,
+        "title": "test video",
+        "category": "Bầu Cử",
+        "description": "",
+        "pdf_url": "",
+        "audio_url": "",
+        "image_url": "https://raw.githubusercontent.com/snnmt/radiomattran/main/hinhanh/up_1776396649.mp4",
+        "last_updated": "17/04/2026"
+    },
+    {
         "id": 6,
         "title": "Bài tuyên truyền về cuộc bầu cử đại biểu Quốc hội khóa XVI và đại biểu Hội đồng nhân dân các cấp nhiệm kỳ 2026 – 2031",
         "category": "Tin Hoạt Động",
