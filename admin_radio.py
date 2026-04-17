@@ -26,7 +26,7 @@ CATEGORY_MAP = {
 }
 
 FOLDER_AUDIO = "amthanh/"
-FOLDER_IMAGE = "hinhanh/" # Ảnh và Video ngắn sẽ gom chung vào đây
+FOLDER_IMAGE = "hinhanh/" 
 FILE_JSON_DATA = "danh_sach_tai_lieu.json"
 
 # --- KIỂM TRA MẬT KHẨU ---
@@ -81,8 +81,6 @@ def upload_file_to_github(file_obj, folder_path, repo, custom_name=None):
         new_filename = f"up_{int(time.time())}.{file_ext}"
         
     git_path = f"{folder_path}{new_filename}"
-    
-    # GitHub tự động tạo folder nếu chưa có
     repo.create_file(git_path, f"Up: {new_filename}", file_obj.getvalue())
     return f"https://raw.githubusercontent.com/{REPO_NAME}/main/{git_path}"
 
@@ -102,7 +100,6 @@ def push_json_to_github(data_list, sha, message):
         updated_json = json.dumps(data_list, ensure_ascii=False, indent=4)
         repo.update_file(contents.path, message, updated_json, contents.sha)
     except:
-        # Trường hợp file chưa tồn tại (lần đầu tiên)
         updated_json = json.dumps(data_list, ensure_ascii=False, indent=4)
         repo.create_file(FILE_JSON_DATA, message, updated_json)
 
@@ -123,15 +120,14 @@ with tab1:
     with c2:
         description = st.text_input("Mô tả ngắn / Trích yếu")
         pdf_file = st.file_uploader("Văn bản đính kèm (PDF)", type=["pdf"])
-        if pdf_file:
-            st.info(f"File này sẽ được lưu vào thư mục: /{CATEGORY_MAP[category]}")
 
     st.markdown("---")
     
     # 2. CHỌN NGUỒN ÂM THANH
     st.write("🎙️ **Cấu hình Âm thanh & Hình ảnh / Video**")
     
-    audio_source_options = ["🎙️ Tạo từ văn bản (AI)", "📁 Tải file có sẵn từ máy"]
+    # CẬP NHẬT: Thêm tùy chọn không cần âm thanh
+    audio_source_options = ["🎙️ Tạo từ văn bản (AI)", "📁 Tải file có sẵn", "🚫 Không cần âm thanh (Dành cho Video)"]
     audio_source = st.radio("Chọn nguồn âm thanh:", audio_source_options, horizontal=True)
     
     content_text = ""
@@ -158,14 +154,16 @@ with tab1:
                 speed_label = st.selectbox("Tốc độ đọc:", list(speed_opts.keys()), index=0)
                 speed_rate = speed_opts[speed_label]
             
-            content_text = st.text_area("Nội dung bản tin (AI sẽ đọc):", height=200, placeholder="Dán văn bản tuyên truyền vào đây...")
+            content_text = st.text_area("Nội dung bản tin (AI sẽ đọc):", height=200, placeholder="Dán văn bản vào đây...")
         
-        else: # Upload
+        elif audio_source == audio_source_options[1]: # Upload
             st.info("📂 Upload file âm thanh (MP3/WAV) đã thu âm sẵn")
             uploaded_audio = st.file_uploader("Chọn file âm thanh:", type=["mp3", "wav", "m4a"])
+            
+        else: # Không cần âm thanh
+            st.success("🔇 Đã chọn bỏ qua âm thanh. Thường dùng khi bạn đăng tải Video (vì Video đã có sẵn tiếng).")
 
     with col_image:
-        # CẬP NHẬT: Cho phép tải cả định dạng Video MP4
         image_file = st.file_uploader("Ảnh bìa / Video (JPG/PNG/MP4)", type=["jpg", "png", "jpeg", "mp4"])
         if image_file and image_file.name.endswith(".mp4"):
             st.info("🎥 Hệ thống sẽ nhận diện đây là Video.")
@@ -186,11 +184,13 @@ with tab1:
                     with open(preview_filename, "rb") as f:
                         st.audio(f.read(), format="audio/mp3")
                     os.remove(preview_filename)
-            else:
+            elif audio_source == audio_source_options[1]:
                 if not uploaded_audio:
                     st.warning("⚠️ Chưa chọn file!")
                 else:
                     st.audio(uploaded_audio)
+            else:
+                st.warning("🔇 Bạn đã chọn không dùng âm thanh nên không thể nghe thử.")
 
     with col_btn2:
         if st.button("🚀 PHÁT SÓNG NGAY", type="primary"):
@@ -211,29 +211,29 @@ with tab1:
                 
                 # 1. Upload Ảnh/Video & PDF
                 status.write("Upload file đính kèm...")
-                
                 target_pdf_folder = CATEGORY_MAP.get(category, "tinkhac/")
                 final_pdf = upload_file_to_github(pdf_file, target_pdf_folder, repo) if pdf_file else ""
-                
                 final_img = upload_file_to_github(image_file, FOLDER_IMAGE, repo) if image_file else f"https://raw.githubusercontent.com/{REPO_NAME}/main/hinhanh/logo_mac_dinh.png"
                 
                 # 2. Xử lý Âm thanh
-                status.write("Xử lý âm thanh...")
-                timestamp = int(time.time())
-                
-                if audio_source == audio_source_options[0]: 
-                    fname_mp3 = f"radio_{timestamp}.mp3"
-                    asyncio.run(generate_audio(content_text, fname_mp3, voice_code, speed_rate))
-                    with open(fname_mp3, "rb") as f:
-                        audio_content = f.read()
-                    os.remove(fname_mp3)
-                else:
-                    audio_content = uploaded_audio.getvalue()
-                    ext = uploaded_audio.name.split(".")[-1]
-                    fname_mp3 = f"radio_{timestamp}.{ext}"
+                final_audio = ""
+                if audio_source != audio_source_options[2]: # Nếu KHÔNG PHẢI là "Không cần âm thanh"
+                    status.write("Xử lý âm thanh...")
+                    timestamp = int(time.time())
+                    
+                    if audio_source == audio_source_options[0]: 
+                        fname_mp3 = f"radio_{timestamp}.mp3"
+                        asyncio.run(generate_audio(content_text, fname_mp3, voice_code, speed_rate))
+                        with open(fname_mp3, "rb") as f:
+                            audio_content = f.read()
+                        os.remove(fname_mp3)
+                    else:
+                        audio_content = uploaded_audio.getvalue()
+                        ext = uploaded_audio.name.split(".")[-1]
+                        fname_mp3 = f"radio_{timestamp}.{ext}"
 
-                repo.create_file(f"{FOLDER_AUDIO}{fname_mp3}", f"Audio: {title}", audio_content)
-                final_audio = f"https://raw.githubusercontent.com/{REPO_NAME}/main/{FOLDER_AUDIO}{fname_mp3}"
+                    repo.create_file(f"{FOLDER_AUDIO}{fname_mp3}", f"Audio: {title}", audio_content)
+                    final_audio = f"https://raw.githubusercontent.com/{REPO_NAME}/main/{FOLDER_AUDIO}{fname_mp3}"
 
                 # 3. Cập nhật JSON
                 status.write("Cập nhật cơ sở dữ liệu...")
@@ -297,7 +297,6 @@ with tab2:
 
         if selected_item:
             with st.expander("📝 CHỈNH SỬA CHI TIẾT", expanded=True):
-                # 1. Text Info
                 new_title = st.text_input("Tiêu đề:", value=selected_item.get("title", ""))
                 new_desc = st.text_input("Mô tả:", value=selected_item.get("description", ""))
                 
@@ -307,11 +306,9 @@ with tab2:
                 new_cat = st.selectbox("Chuyên mục:", cat_ops, index=c_idx)
 
                 st.markdown("---")
-                # 2. Files
                 col_edit_img, col_edit_pdf = st.columns(2)
                 with col_edit_img:
                     st.write("**Ảnh đại diện / Video:**")
-                    # CẬP NHẬT: Phân biệt hiển thị Ảnh tĩnh và Video trong khung quản lý
                     if selected_item.get("image_url"):
                         media_url = selected_item["image_url"]
                         if media_url.lower().endswith(".mp4"):
@@ -328,12 +325,13 @@ with tab2:
                     new_pdf = st.file_uploader("Thay PDF mới:", type=["pdf"])
 
                 st.markdown("---")
-                # 3. Audio
                 st.write("🔊 **Âm thanh phát sóng**")
                 if selected_item.get("audio_url"):
                     st.audio(selected_item["audio_url"])
+                else:
+                    st.info("🔇 Bản tin này hiện không có âm thanh.")
                 
-                need_replace_audio = st.checkbox("Thay thế file âm thanh mới?")
+                need_replace_audio = st.checkbox("Thay đổi / Xóa âm thanh?")
                 
                 edit_audio_source = "AI"
                 edit_content_text = ""
@@ -342,8 +340,9 @@ with tab2:
                 edit_speed_rate = "+0%"
 
                 if need_replace_audio:
-                    edit_audio_opts = ["🎙️ Tạo lại bằng AI", "📁 Upload file mới"]
-                    edit_audio_source = st.radio("Nguồn âm thanh mới:", edit_audio_opts, horizontal=True)
+                    # CẬP NHẬT: Thêm tùy chọn xóa hoàn toàn âm thanh
+                    edit_audio_opts = ["🎙️ Tạo lại bằng AI", "📁 Upload file mới", "🗑️ Xóa âm thanh (Dành cho Video)"]
+                    edit_audio_source = st.radio("Tùy chọn âm thanh:", edit_audio_opts, horizontal=True)
                     
                     if edit_audio_source == edit_audio_opts[0]: # AI
                         ec1, ec2 = st.columns(2)
@@ -355,8 +354,10 @@ with tab2:
                             edit_speed_rate = speed_opts[e_speed_label]
                         
                         edit_content_text = st.text_area("Nội dung mới để đọc:", height=150)
-                    else: # Upload
+                    elif edit_audio_source == edit_audio_opts[1]: # Upload
                         edit_uploaded_audio = st.file_uploader("Chọn file âm thanh thay thế:", type=["mp3", "wav", "m4a"], key="edit_upload")
+                    else:
+                        st.warning("⚠️ Nếu lưu, file âm thanh cũ sẽ bị gỡ bỏ khỏi bản tin này.")
 
                 st.markdown("---")
                 if st.button("💾 LƯU TẤT CẢ THAY ĐỔI", type="primary"):
@@ -378,22 +379,25 @@ with tab2:
                         selected_item["pdf_url"] = upload_file_to_github(new_pdf, target_folder, repo)
                     
                     if need_replace_audio:
-                        status.write("Đang xử lý âm thanh mới...")
-                        timestamp = int(time.time())
-                        fname_mp3 = f"radio_{timestamp}.mp3"
-                        
-                        if edit_audio_source.startswith("🎙️"): # AI
-                            asyncio.run(generate_audio(edit_content_text, fname_mp3, edit_voice_code, edit_speed_rate))
-                            with open(fname_mp3, "rb") as f:
-                                content = f.read()
-                            os.remove(fname_mp3)
-                        else: # Upload
-                            content = edit_uploaded_audio.getvalue()
-                            ext = edit_uploaded_audio.name.split(".")[-1]
-                            fname_mp3 = f"radio_{timestamp}.{ext}"
+                        if edit_audio_source == "🗑️ Xóa âm thanh (Dành cho Video)":
+                            selected_item["audio_url"] = ""
+                        else:
+                            status.write("Đang xử lý âm thanh mới...")
+                            timestamp = int(time.time())
+                            fname_mp3 = f"radio_{timestamp}.mp3"
                             
-                        repo.create_file(f"{FOLDER_AUDIO}{fname_mp3}", f"Update Audio ID {selected_item['id']}", content)
-                        selected_item["audio_url"] = f"https://raw.githubusercontent.com/{REPO_NAME}/main/{FOLDER_AUDIO}{fname_mp3}"
+                            if edit_audio_source.startswith("🎙️"): # AI
+                                asyncio.run(generate_audio(edit_content_text, fname_mp3, edit_voice_code, edit_speed_rate))
+                                with open(fname_mp3, "rb") as f:
+                                    content = f.read()
+                                os.remove(fname_mp3)
+                            else: # Upload
+                                content = edit_uploaded_audio.getvalue()
+                                ext = edit_uploaded_audio.name.split(".")[-1]
+                                fname_mp3 = f"radio_{timestamp}.{ext}"
+                                
+                            repo.create_file(f"{FOLDER_AUDIO}{fname_mp3}", f"Update Audio ID {selected_item['id']}", content)
+                            selected_item["audio_url"] = f"https://raw.githubusercontent.com/{REPO_NAME}/main/{FOLDER_AUDIO}{fname_mp3}"
 
                     selected_item["title"] = new_title
                     selected_item["description"] = new_desc
