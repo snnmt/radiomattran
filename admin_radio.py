@@ -13,11 +13,9 @@ import pandas as pd
 st.set_page_config(page_title="Quản Trị Radio Mặt Trận", page_icon="☭", layout="wide")
 
 # --- CẤU HÌNH KHO DỮ LIỆU (REPOSITORY) ---
-# Thay đổi tên kho dữ liệu mới tại đây
 REPO_NAME = "snnmt/radiomattran" 
 
 # CẤU HÌNH MAPPING: Chuyên mục -> Thư mục trên GitHub
-# (Dựa theo ảnh chụp màn hình GitHub của anh)
 CATEGORY_MAP = {
     "Tin Hoạt Động": "tinhoatdong/",
     "Đại Đoàn Kết": "daidoanket/",
@@ -28,7 +26,7 @@ CATEGORY_MAP = {
 }
 
 FOLDER_AUDIO = "amthanh/"
-FOLDER_IMAGE = "hinhanh/" # Ảnh sẽ gom chung vào đây cho gọn
+FOLDER_IMAGE = "hinhanh/" # Ảnh và Video ngắn sẽ gom chung vào đây
 FILE_JSON_DATA = "danh_sach_tai_lieu.json"
 
 # --- KIỂM TRA MẬT KHẨU ---
@@ -121,7 +119,6 @@ with tab1:
     c1, c2 = st.columns(2)
     with c1:
         title = st.text_input("Tiêu đề bản tin")
-        # Sử dụng danh sách chuyên mục mới
         category = st.selectbox("Chuyên mục", list(CATEGORY_MAP.keys()))
     with c2:
         description = st.text_input("Mô tả ngắn / Trích yếu")
@@ -132,7 +129,7 @@ with tab1:
     st.markdown("---")
     
     # 2. CHỌN NGUỒN ÂM THANH
-    st.write("🎙️ **Cấu hình Âm thanh & Hình ảnh**")
+    st.write("🎙️ **Cấu hình Âm thanh & Hình ảnh / Video**")
     
     audio_source_options = ["🎙️ Tạo từ văn bản (AI)", "📁 Tải file có sẵn từ máy"]
     audio_source = st.radio("Chọn nguồn âm thanh:", audio_source_options, horizontal=True)
@@ -168,7 +165,10 @@ with tab1:
             uploaded_audio = st.file_uploader("Chọn file âm thanh:", type=["mp3", "wav", "m4a"])
 
     with col_image:
-        image_file = st.file_uploader("Ảnh bìa (JPG/PNG)", type=["jpg", "png", "jpeg"])
+        # CẬP NHẬT: Cho phép tải cả định dạng Video MP4
+        image_file = st.file_uploader("Ảnh bìa / Video (JPG/PNG/MP4)", type=["jpg", "png", "jpeg", "mp4"])
+        if image_file and image_file.name.endswith(".mp4"):
+            st.info("🎥 Hệ thống sẽ nhận diện đây là Video.")
 
     # --- NÚT BẤM ---
     st.markdown("---")
@@ -199,24 +199,22 @@ with tab1:
                 st.warning("⚠️ Thiếu tiêu đề!")
                 valid = False
             if audio_source == audio_source_options[0] and not content_text:
-                st.warning("⚠️ Thiếu nội dung!")
+                st.warning("⚠️ Thiếu nội dung AI!")
                 valid = False
             if audio_source == audio_source_options[1] and not uploaded_audio:
-                st.warning("⚠️ Chưa upload file!")
+                st.warning("⚠️ Chưa upload file âm thanh!")
                 valid = False
 
             if valid:
                 status = st.status("Đang xử lý phát sóng...", expanded=True)
                 repo = get_github_repo()
                 
-                # 1. Upload Ảnh & PDF (Vào đúng thư mục chuyên mục)
+                # 1. Upload Ảnh/Video & PDF
                 status.write("Upload file đính kèm...")
                 
-                # Xác định thư mục PDF dựa trên chuyên mục
                 target_pdf_folder = CATEGORY_MAP.get(category, "tinkhac/")
                 final_pdf = upload_file_to_github(pdf_file, target_pdf_folder, repo) if pdf_file else ""
                 
-                # Ảnh vẫn vào folder chung hinhanh
                 final_img = upload_file_to_github(image_file, FOLDER_IMAGE, repo) if image_file else f"https://raw.githubusercontent.com/{REPO_NAME}/main/hinhanh/logo_mac_dinh.png"
                 
                 # 2. Xử lý Âm thanh
@@ -303,7 +301,6 @@ with tab2:
                 new_title = st.text_input("Tiêu đề:", value=selected_item.get("title", ""))
                 new_desc = st.text_input("Mô tả:", value=selected_item.get("description", ""))
                 
-                # Dropdown chuyên mục mới
                 cat_ops = list(CATEGORY_MAP.keys())
                 curr_cat = selected_item.get("category", "Tin Khác")
                 c_idx = cat_ops.index(curr_cat) if curr_cat in cat_ops else 0
@@ -313,10 +310,16 @@ with tab2:
                 # 2. Files
                 col_edit_img, col_edit_pdf = st.columns(2)
                 with col_edit_img:
-                    st.write("**Ảnh đại diện:**")
+                    st.write("**Ảnh đại diện / Video:**")
+                    # CẬP NHẬT: Phân biệt hiển thị Ảnh tĩnh và Video trong khung quản lý
                     if selected_item.get("image_url"):
-                        st.image(selected_item["image_url"], width=150)
-                    new_image = st.file_uploader("Thay ảnh mới:", type=["jpg", "png"])
+                        media_url = selected_item["image_url"]
+                        if media_url.lower().endswith(".mp4"):
+                            st.video(media_url)
+                        else:
+                            st.image(media_url, width=150)
+                            
+                    new_image = st.file_uploader("Thay Ảnh/Video mới:", type=["jpg", "png", "jpeg", "mp4"])
                 
                 with col_edit_pdf:
                     st.write("**Tài liệu văn bản:**")
@@ -371,7 +374,6 @@ with tab2:
                     if new_image:
                         selected_item["image_url"] = upload_file_to_github(new_image, FOLDER_IMAGE, repo)
                     if new_pdf:
-                        # Lưu PDF vào đúng folder của chuyên mục mới chọn
                         target_folder = CATEGORY_MAP.get(new_cat, "tinkhac/")
                         selected_item["pdf_url"] = upload_file_to_github(new_pdf, target_folder, repo)
                     
