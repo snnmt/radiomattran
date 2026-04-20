@@ -9,7 +9,7 @@ from datetime import datetime
 import os
 import pandas as pd
 import requests 
-import threading # <-- THÊM THƯ VIỆN CHẠY NGẦM
+import threading 
 
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(page_title="Quản Trị Radio Mặt Trận", page_icon="☭", layout="wide")
@@ -20,17 +20,11 @@ st.set_page_config(page_title="Quản Trị Radio Mặt Trận", page_icon="☭"
 if "render_woken" not in st.session_state:
     def ping_render():
         try:
-            # Gọi đường dẫn gốc để đánh thức Render
             api_url = "https://radiomt.onrender.com/"
-            # Chỉ chờ 3 giây rồi ngắt ngang (vì mục đích chỉ là "gõ cửa" gọi nó dậy)
             requests.get(api_url, timeout=3)
         except:
-            pass # Bỏ qua mọi lỗi timeout để không làm phiền giao diện
-
-    # Mở một luồng chạy ngầm để không làm đơ trang web
+            pass 
     threading.Thread(target=ping_render, daemon=True).start()
-    
-    # Đánh dấu là đã gọi dậy rồi, không gọi lại lần nữa khi gõ bàn phím
     st.session_state.render_woken = True
 # =====================================================================
 
@@ -125,6 +119,18 @@ def push_json_to_github(data_list, sha, message):
         updated_json = json.dumps(data_list, ensure_ascii=False, indent=4)
         repo.create_file(FILE_JSON_DATA, message, updated_json)
 
+# HÀM MỚI: XÓA FILE VẬT LÝ TRÊN GITHUB ĐỂ DỌN RÁC
+def delete_file_from_github(repo, file_url):
+    if not file_url or "logo_mac_dinh" in file_url:
+        return
+    try:
+        # Cắt lấy đường dẫn tương đối (từ sau chữ main/)
+        path = file_url.split("main/")[-1]
+        contents = repo.get_contents(path)
+        repo.delete_file(contents.path, f"Delete {path}", contents.sha)
+    except Exception as e:
+        pass # Bỏ qua nếu file không tồn tại
+
 # --- CHIA GIAO DIỆN THÀNH 2 TAB ---
 tab1, tab2 = st.tabs(["➕ ĐĂNG BẢN TIN MỚI", "🛠️ QUẢN LÝ & CHỈNH SỬA"])
 
@@ -134,7 +140,6 @@ tab1, tab2 = st.tabs(["➕ ĐĂNG BẢN TIN MỚI", "🛠️ QUẢN LÝ & CHỈN
 with tab1:
     st.subheader("Soạn Thảo Bản Tin Mặt Trận")
     
-    # 1. THÔNG TIN CƠ BẢN
     c1, c2 = st.columns(2)
     with c1:
         title = st.text_input("Tiêu đề bản tin")
@@ -145,7 +150,6 @@ with tab1:
 
     st.markdown("---")
     
-    # 2. CHỌN NGUỒN ÂM THANH
     st.write("🎙️ **Cấu hình Âm thanh & Hình ảnh / Video**")
     
     audio_source_options = ["🎙️ Tạo từ văn bản (AI)", "📁 Tải file có sẵn", "🚫 Không cần âm thanh (Dành cho Video)"]
@@ -159,7 +163,7 @@ with tab1:
     col_audio, col_image = st.columns([2, 1])
     
     with col_audio:
-        if audio_source == audio_source_options[0]: # AI
+        if audio_source == audio_source_options[0]: 
             c_voice, c_speed = st.columns(2)
             with c_voice:
                 voice_opts = {"Nam (Miền Nam)": "vi-VN-NamMinhNeural", "Nữ (Miền Bắc)": "vi-VN-HoaiMyNeural"}
@@ -177,11 +181,11 @@ with tab1:
             
             content_text = st.text_area("Nội dung bản tin (AI sẽ đọc):", height=200, placeholder="Dán văn bản vào đây...")
         
-        elif audio_source == audio_source_options[1]: # Upload
+        elif audio_source == audio_source_options[1]:
             st.info("📂 Upload file âm thanh (MP3/WAV) đã thu âm sẵn")
             uploaded_audio = st.file_uploader("Chọn file âm thanh:", type=["mp3", "wav", "m4a"])
             
-        else: # Không cần âm thanh
+        else: 
             st.success("🔇 Đã chọn bỏ qua âm thanh. Thường dùng khi bạn đăng tải Video.")
 
     with col_image:
@@ -189,7 +193,6 @@ with tab1:
         if image_file and image_file.name.endswith(".mp4"):
             st.info("🎥 Hệ thống sẽ nhận diện đây là Video.")
 
-    # --- NÚT BẤM ---
     st.markdown("---")
     col_btn1, col_btn2 = st.columns(2)
     
@@ -230,13 +233,11 @@ with tab1:
                 status = st.status("Đang xử lý phát sóng...", expanded=True)
                 repo = get_github_repo()
                 
-                # 1. Upload Ảnh/Video & PDF
                 status.write("Upload file đính kèm...")
                 target_pdf_folder = CATEGORY_MAP.get(category, "tinkhac/")
                 final_pdf = upload_file_to_github(pdf_file, target_pdf_folder, repo) if pdf_file else ""
                 final_img = upload_file_to_github(image_file, FOLDER_IMAGE, repo) if image_file else f"https://raw.githubusercontent.com/{REPO_NAME}/main/hinhanh/logo_mac_dinh.png"
                 
-                # 2. Xử lý Âm thanh
                 final_audio = ""
                 if audio_source != audio_source_options[2]:
                     status.write("Xử lý âm thanh...")
@@ -256,7 +257,6 @@ with tab1:
                     repo.create_file(f"{FOLDER_AUDIO}{fname_mp3}", f"Audio: {title}", audio_content)
                     final_audio = f"https://raw.githubusercontent.com/{REPO_NAME}/main/{FOLDER_AUDIO}{fname_mp3}"
 
-                # 3. Cập nhật JSON
                 status.write("Cập nhật cơ sở dữ liệu...")
                 data, sha = get_data_from_github()
                 
@@ -277,12 +277,8 @@ with tab1:
                 status.update(label="✅ Thành công!", state="complete")
                 st.success(f"Đã phát sóng bản tin ID: {new_id}")
 
-                # =======================================================
-                # 4. GỌI API RENDER ĐỂ BẮN THÔNG BÁO TỚI ĐIỆN THOẠI
-                # =======================================================
                 try:
                     api_url = "https://radiomt.onrender.com/admin/sendNotification"
-                    
                     headers = {
                         "Authorization": "Bearer RadioMatTran2026_Secret", 
                         "Content-Type": "application/json"
@@ -292,7 +288,6 @@ with tab1:
                         "body": title
                     }
                     
-                    # QUAN TRỌNG: timeout=60 để chờ Render khởi động xong nếu nó vẫn đang ngủ
                     resp = requests.post(api_url, headers=headers, json=payload, timeout=60)
                     if resp.status_code == 200:
                         st.toast("🔔 Đã đẩy thông báo tới toàn bộ điện thoại!", icon="🚀")
@@ -388,7 +383,7 @@ with tab2:
                     edit_audio_opts = ["🎙️ Tạo lại bằng AI", "📁 Upload file mới", "🗑️ Xóa âm thanh (Dành cho Video)"]
                     edit_audio_source = st.radio("Tùy chọn âm thanh:", edit_audio_opts, horizontal=True)
                     
-                    if edit_audio_source == edit_audio_opts[0]: # AI
+                    if edit_audio_source == edit_audio_opts[0]: 
                         ec1, ec2 = st.columns(2)
                         with ec1:
                             e_voice_label = st.selectbox("Giọng đọc mới:", list(voice_opts.keys()), key="edit_voice")
@@ -398,7 +393,7 @@ with tab2:
                             edit_speed_rate = speed_opts[e_speed_label]
                         
                         edit_content_text = st.text_area("Nội dung mới để đọc:", height=150)
-                    elif edit_audio_source == edit_audio_opts[1]: # Upload
+                    elif edit_audio_source == edit_audio_opts[1]: 
                         edit_uploaded_audio = st.file_uploader("Chọn file âm thanh thay thế:", type=["mp3", "wav", "m4a"], key="edit_upload")
                     else:
                         st.warning("⚠️ Nếu lưu, file âm thanh cũ sẽ bị gỡ bỏ khỏi bản tin này.")
@@ -417,12 +412,16 @@ with tab2:
                     repo = get_github_repo()
                     
                     if new_image:
+                        # Có thể thêm lệnh xóa ảnh cũ ở đây nếu muốn tối ưu hơn
                         selected_item["image_url"] = upload_file_to_github(new_image, FOLDER_IMAGE, repo)
                     if new_pdf:
                         target_folder = CATEGORY_MAP.get(new_cat, "tinkhac/")
                         selected_item["pdf_url"] = upload_file_to_github(new_pdf, target_folder, repo)
                     
                     if need_replace_audio:
+                        # Xóa file audio cũ trước khi thay mới
+                        delete_file_from_github(repo, selected_item.get("audio_url"))
+                        
                         if edit_audio_source == "🗑️ Xóa âm thanh (Dành cho Video)":
                             selected_item["audio_url"] = ""
                         else:
@@ -430,12 +429,12 @@ with tab2:
                             timestamp = int(time.time())
                             fname_mp3 = f"radio_{timestamp}.mp3"
                             
-                            if edit_audio_source.startswith("🎙️"): # AI
+                            if edit_audio_source.startswith("🎙️"): 
                                 asyncio.run(generate_audio(edit_content_text, fname_mp3, edit_voice_code, edit_speed_rate))
                                 with open(fname_mp3, "rb") as f:
                                     content = f.read()
                                 os.remove(fname_mp3)
-                            else: # Upload
+                            else: 
                                 content = edit_uploaded_audio.getvalue()
                                 ext = edit_uploaded_audio.name.split(".")[-1]
                                 fname_mp3 = f"radio_{timestamp}.{ext}"
@@ -466,11 +465,20 @@ with tab2:
             col_del1, col_del2 = st.columns([3, 1])
             with col_del2:
                 if st.button("🗑️ XÓA BẢN TIN NÀY", type="primary"):
-                    with st.spinner("Đang xóa..."):
+                    with st.spinner("Đang xóa bản tin và dọn dẹp file..."):
+                        repo = get_github_repo()
+                        
+                        # Xóa triệt để các file vật lý trên GitHub
+                        delete_file_from_github(repo, selected_item.get("audio_url"))
+                        delete_file_from_github(repo, selected_item.get("image_url"))
+                        delete_file_from_github(repo, selected_item.get("pdf_url"))
+
+                        # Cập nhật file JSON
                         full_data, sha = get_data_from_github()
                         filtered_data = [x for x in full_data if x.get("id") != selected_item.get("id")]
                         push_json_to_github(filtered_data, sha, f"Delete ID {selected_item.get('id')}")
+                        
                         st.session_state.db_data = filtered_data
-                        st.success("Đã xóa!")
+                        st.success("Đã xóa vĩnh viễn!")
                         time.sleep(1)
                         st.rerun()
