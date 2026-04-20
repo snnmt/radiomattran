@@ -8,27 +8,29 @@ import time
 from datetime import datetime
 import os
 import pandas as pd
-import requests # <-- THÊM THƯ VIỆN GỌI API
+import requests 
+import threading # <-- THÊM THƯ VIỆN CHẠY NGẦM
 
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(page_title="Quản Trị Radio Mặt Trận", page_icon="☭", layout="wide")
+
 # =====================================================================
 # TÍNH NĂNG MỚI: ÂM THẦM ĐÁNH THỨC RENDER SERVER (PRE-WARM)
 # =====================================================================
 if "render_woken" not in st.session_state:
     def ping_render():
         try:
-            # ⚠️ NHỚ THAY ĐỊA CHỈ NÀY THÀNH LINK APP TRÊN RENDER CỦA ANH
+            # Gọi đường dẫn gốc để đánh thức Render
             api_url = "https://radiomt.onrender.com/"
             # Chỉ chờ 3 giây rồi ngắt ngang (vì mục đích chỉ là "gõ cửa" gọi nó dậy)
             requests.get(api_url, timeout=3)
         except:
             pass # Bỏ qua mọi lỗi timeout để không làm phiền giao diện
 
-    # Mở một luồng chạy ngầm để không làm đơ trang web của anh
+    # Mở một luồng chạy ngầm để không làm đơ trang web
     threading.Thread(target=ping_render, daemon=True).start()
     
-    # Đánh dấu là đã gọi dậy rồi, không gọi lại lần nữa khi anh gõ bàn phím
+    # Đánh dấu là đã gọi dậy rồi, không gọi lại lần nữa khi gõ bàn phím
     st.session_state.render_woken = True
 # =====================================================================
 
@@ -279,11 +281,10 @@ with tab1:
                 # 4. GỌI API RENDER ĐỂ BẮN THÔNG BÁO TỚI ĐIỆN THOẠI
                 # =======================================================
                 try:
-                    # ⚠️ QUAN TRỌNG: Sửa URL thành link Render thật của anh
                     api_url = "https://radiomt.onrender.com/admin/sendNotification"
                     
                     headers = {
-                        "Authorization": "Bearer RadioMatTran2026_Secret", # Khớp với biến trên Render
+                        "Authorization": "Bearer RadioMatTran2026_Secret", 
                         "Content-Type": "application/json"
                     }
                     payload = {
@@ -291,7 +292,8 @@ with tab1:
                         "body": title
                     }
                     
-                    resp = requests.post(api_url, headers=headers, json=payload, timeout=10)
+                    # QUAN TRỌNG: timeout=60 để chờ Render khởi động xong nếu nó vẫn đang ngủ
+                    resp = requests.post(api_url, headers=headers, json=payload, timeout=60)
                     if resp.status_code == 200:
                         st.toast("🔔 Đã đẩy thông báo tới toàn bộ điện thoại!", icon="🚀")
                     else:
