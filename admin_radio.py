@@ -8,6 +8,7 @@ import time
 from datetime import datetime
 import os
 import pandas as pd
+import requests # <-- THÊM THƯ VIỆN GỌI API
 
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(page_title="Quản Trị Radio Mặt Trận", page_icon="☭", layout="wide")
@@ -126,7 +127,6 @@ with tab1:
     # 2. CHỌN NGUỒN ÂM THANH
     st.write("🎙️ **Cấu hình Âm thanh & Hình ảnh / Video**")
     
-    # CẬP NHẬT: Thêm tùy chọn không cần âm thanh
     audio_source_options = ["🎙️ Tạo từ văn bản (AI)", "📁 Tải file có sẵn", "🚫 Không cần âm thanh (Dành cho Video)"]
     audio_source = st.radio("Chọn nguồn âm thanh:", audio_source_options, horizontal=True)
     
@@ -161,7 +161,7 @@ with tab1:
             uploaded_audio = st.file_uploader("Chọn file âm thanh:", type=["mp3", "wav", "m4a"])
             
         else: # Không cần âm thanh
-            st.success("🔇 Đã chọn bỏ qua âm thanh. Thường dùng khi bạn đăng tải Video (vì Video đã có sẵn tiếng).")
+            st.success("🔇 Đã chọn bỏ qua âm thanh. Thường dùng khi bạn đăng tải Video.")
 
     with col_image:
         image_file = st.file_uploader("Ảnh bìa / Video (JPG/PNG/MP4)", type=["jpg", "png", "jpeg", "mp4"])
@@ -217,7 +217,7 @@ with tab1:
                 
                 # 2. Xử lý Âm thanh
                 final_audio = ""
-                if audio_source != audio_source_options[2]: # Nếu KHÔNG PHẢI là "Không cần âm thanh"
+                if audio_source != audio_source_options[2]:
                     status.write("Xử lý âm thanh...")
                     timestamp = int(time.time())
                     
@@ -255,6 +255,30 @@ with tab1:
                 
                 status.update(label="✅ Thành công!", state="complete")
                 st.success(f"Đã phát sóng bản tin ID: {new_id}")
+
+                # =======================================================
+                # 4. GỌI API RENDER ĐỂ BẮN THÔNG BÁO TỚI ĐIỆN THOẠI
+                # =======================================================
+                try:
+                    # ⚠️ QUAN TRỌNG: Sửa URL thành link Render thật của anh
+                    api_url = "https://radiomt.onrender.com/admin/sendNotification"
+                    
+                    headers = {
+                        "Authorization": "Bearer RadioMatTran2026_Secret", # Khớp với biến trên Render
+                        "Content-Type": "application/json"
+                    }
+                    payload = {
+                        "title": "📻 Bản tin Mặt Trận mới",
+                        "body": title
+                    }
+                    
+                    resp = requests.post(api_url, headers=headers, json=payload, timeout=10)
+                    if resp.status_code == 200:
+                        st.toast("🔔 Đã đẩy thông báo tới toàn bộ điện thoại!", icon="🚀")
+                    else:
+                        st.warning(f"Đã đăng bài nhưng lỗi đẩy thông báo: {resp.text}")
+                except Exception as e:
+                    st.error(f"Lỗi kết nối API thông báo: {e}")
 
 # =================================================================================
 # TAB 2: QUẢN LÝ
@@ -340,7 +364,6 @@ with tab2:
                 edit_speed_rate = "+0%"
 
                 if need_replace_audio:
-                    # CẬP NHẬT: Thêm tùy chọn xóa hoàn toàn âm thanh
                     edit_audio_opts = ["🎙️ Tạo lại bằng AI", "📁 Upload file mới", "🗑️ Xóa âm thanh (Dành cho Video)"]
                     edit_audio_source = st.radio("Tùy chọn âm thanh:", edit_audio_opts, horizontal=True)
                     
