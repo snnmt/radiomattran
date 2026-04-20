@@ -12,6 +12,25 @@ import requests # <-- THÊM THƯ VIỆN GỌI API
 
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(page_title="Quản Trị Radio Mặt Trận", page_icon="☭", layout="wide")
+# =====================================================================
+# TÍNH NĂNG MỚI: ÂM THẦM ĐÁNH THỨC RENDER SERVER (PRE-WARM)
+# =====================================================================
+if "render_woken" not in st.session_state:
+    def ping_render():
+        try:
+            # ⚠️ NHỚ THAY ĐỊA CHỈ NÀY THÀNH LINK APP TRÊN RENDER CỦA ANH
+            api_url = "https://radiomt.onrender.com/"
+            # Chỉ chờ 3 giây rồi ngắt ngang (vì mục đích chỉ là "gõ cửa" gọi nó dậy)
+            requests.get(api_url, timeout=3)
+        except:
+            pass # Bỏ qua mọi lỗi timeout để không làm phiền giao diện
+
+    # Mở một luồng chạy ngầm để không làm đơ trang web của anh
+    threading.Thread(target=ping_render, daemon=True).start()
+    
+    # Đánh dấu là đã gọi dậy rồi, không gọi lại lần nữa khi anh gõ bàn phím
+    st.session_state.render_woken = True
+# =====================================================================
 
 # --- CẤU HÌNH KHO DỮ LIỆU (REPOSITORY) ---
 REPO_NAME = "snnmt/radiomattran" 
