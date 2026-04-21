@@ -476,24 +476,36 @@ with tab3:
                 
                 if resp.status_code == 200:
                     raw_data = resp.json()
-                    if not raw_data:
-                        st.info("Chưa có lượt xem nào được ghi nhận.")
+                    
+                    # Lọc bỏ các dòng bị lỗi "Không rõ" từ đợt test cũ
+                    valid_data = [item for item in raw_data if item.get('postTitle') and item.get('postTitle') != "Không rõ"]
+
+                    if not valid_data:
+                        st.info("Chưa có lượt xem hợp lệ nào. Hãy mở App bấm nghe 1 bài rồi quay lại đây nhé!")
                     else:
-                        df = pd.DataFrame(raw_data)
+                        df = pd.DataFrame(valid_data)
                         
                         # 1. TỔNG QUAN
                         st.markdown("### 1. Tổng quan")
                         c1, c2, c3 = st.columns(3)
                         c1.metric("Tổng lượt nghe/xem", f"{len(df)} lượt")
-                        c2.metric("Số thiết bị độc lập (Ước tính IP)", f"{df['ipAddress'].nunique()} máy")
+                        c2.metric("Số thiết bị độc lập (IP)", f"{df['ipAddress'].nunique()} máy")
                         c3.metric("Bản tin Hot nhất", f"{df['postTitle'].mode()[0]}")
                         
                         st.markdown("---")
                         
-                        # 2. BIỂU ĐỒ BÀI VIẾT ĐƯỢC XEM NHIỀU NHẤT
-                        st.markdown("### 2. Lượt tương tác theo bản tin")
-                        view_counts = df['postTitle'].value_counts()
-                        st.bar_chart(view_counts)
+                        # 2. XẾP HẠNG LƯỢT XEM TỪNG BÀI VIẾT (TÍNH NĂNG MỚI)
+                        st.markdown("### 2. Xếp hạng lượt xem theo bản tin")
+                        
+                        # Tính tổng lượt xem của từng bài
+                        summary_df = df.groupby(['postId', 'postTitle']).size().reset_index(name='Số lượt xem')
+                        summary_df = summary_df.sort_values(by='Số lượt xem', ascending=False).reset_index(drop=True)
+                        
+                        col_chart, col_table = st.columns([1, 1])
+                        with col_chart:
+                            st.bar_chart(df['postTitle'].value_counts())
+                        with col_table:
+                            st.dataframe(summary_df, use_container_width=True)
                         
                         st.markdown("---")
                         
