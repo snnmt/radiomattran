@@ -33,8 +33,24 @@ app.post("/admin/sendNotification", apiKeyAuth, async (req, res) => {
 
     const message = {
       topic: "ALL",
-      data: { title: title, body: body, click_action: "OPEN_MAIN_ACTIVITY", docId: String(Date.now()) },
-      android: { priority: "high", ttl: 0 }
+      // =========================================================
+      // THÊM KHỐI NÀY: Bắt buộc Android tự động hiển thị thông báo
+      // =========================================================
+      notification: {
+        title: title,
+        body: body
+      },
+      // Vẫn giữ khối data để khi bấm vào thông báo app biết đường xử lý
+      data: { 
+        title: title, 
+        body: body, 
+        click_action: "OPEN_MAIN_ACTIVITY", 
+        docId: String(Date.now()) 
+      },
+      android: { 
+        priority: "high", 
+        ttl: 0 
+      }
     };
 
     const response = await admin.messaging().send(message);
