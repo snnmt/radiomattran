@@ -462,12 +462,14 @@ with tab2:
                         time.sleep(1)
                         st.rerun()
 
-# --- TAB 3: THỐNG KÊ CHI TIẾT ---
+# =================================================================================
+# TAB 3: THỐNG KÊ CHI TIẾT
+# =================================================================================
 with tab3:
-    st.subheader("Báo Cáo Tương Tác & Lượt Xem")
+    st.subheader("Báo Cáo Tương Tác & Lượt Xem (Đã lọc IP trùng)")
     
     if st.button("🔄 Cập nhật số liệu"):
-        with st.spinner("Đang tải dữ liệu từ máy chủ..."):
+        with st.spinner("Đang tải và xử lý dữ liệu từ máy chủ..."):
             try:
                 # Gọi API Render để lấy data
                 api_url = "https://radiomt.onrender.com/admin/stats"
@@ -476,52 +478,88 @@ with tab3:
                 
                 if resp.status_code == 200:
                     raw_data = resp.json()
-                    
-                    # Lọc bỏ các dòng bị lỗi "Không rõ" từ đợt test cũ
                     valid_data = [item for item in raw_data if item.get('postTitle') and item.get('postTitle') != "Không rõ"]
 
                     if not valid_data:
-                        st.info("Chưa có lượt xem hợp lệ nào. Hãy mở App bấm nghe 1 bài rồi quay lại đây nhé!")
+                        st.info("Chưa có lượt xem hợp lệ nào được ghi nhận.")
                     else:
                         df = pd.DataFrame(valid_data)
                         
-                        # 1. TỔNG QUAN
-                        st.markdown("### 1. Tổng quan")
+                        # --- BƯỚC 1: XỬ LÝ DỮ LIỆU (TÁCH HÀNH ĐỘNG & TÊN BÀI) ---
+                        def parse_title(raw_title):
+                            raw_str = str(raw_title)
+                            if raw_str.startswith("[Audio] "):
+                                return "Nghe Radio", raw_str.replace("[Audio] ", "")
+                            elif raw_str.startswith("[PDF] "):
+                                return "Đọc PDF", raw_str.replace("[PDF] ", "")
+                            elif raw_str.startswith("[Media] "):
+                                return "Xem Hình/Video", raw_str.replace("[Media] ", "")
+                            elif raw_str == "Xem Media đính kèm":
+                                return "Xem Hình/Video", "Media (Chưa rõ bài)"
+                            else:
+                                return "Tương tác khác", raw_str
+
+                        # Tạo 2 cột mới từ dữ liệu thô
+                        df[['Loại tương tác', 'Tiêu đề bài viết']] = df['postTitle'].apply(lambda x: pd.Series(parse_title(x)))
+                        
+                        # --- BƯỚC 2: LỌC TRÙNG IP (QUAN TRỌNG NHẤT) ---
+                        # Mỗi IP chỉ được tính 1 lần cho 1 Hành động trên 1 Bài viết
+                        df_unique = df.drop_duplicates(subset=['ipAddress', 'Tiêu đề bài viết', 'Loại tương tác'])
+                        
+                        # --- HIỂN THỊ 1. TỔNG QUAN ---
+                        st.markdown("### 1. Tổng quan (Chỉ tính Unique IP)")
                         c1, c2, c3 = st.columns(3)
-                        c1.metric("Tổng lượt nghe/xem", f"{len(df)} lượt")
-                        c2.metric("Số thiết bị độc lập (IP)", f"{df['ipAddress'].nunique()} máy")
-                        c3.metric("Bản tin Hot nhất", f"{df['postTitle'].mode()[0]}")
+                        c1.metric("Tổng lượt xem hợp lệ", f"{len(df_unique)} lượt")
+                        
+                        # Đếm số IP độc lập tổng thể (không tính trùng lặp qua các bài)
+                        unique_ips = df['ipAddress'].nunique()
+                        c2.metric("Số thiết bị thực tế", f"{unique_ips} máy")
+                        
+                        try:
+                            hot_post = df_unique['Tiêu đề bài viết'].mode()[0]
+                        except:
+                            hot_post = "Chưa có"
+                        c3.metric("Bản tin Hot nhất", hot_post)
                         
                         st.markdown("---")
                         
-                        # 2. XẾP HẠNG LƯỢT XEM TỪNG BÀI VIẾT (TÍNH NĂNG MỚI)
-                        st.markdown("### 2. Xếp hạng lượt xem theo bản tin")
+                        # --- HIỂN THỊ 2. BẢNG XẾP HẠNG CHI TIẾT ---
+                        st.markdown("### 2. Chi tiết lượt xem theo từng bản tin")
+                        st.caption("Bảng tự động phân loại số người đã Nghe Audio, Đọc PDF, Xem Ảnh của từng bài. Mỗi người (IP) chỉ tính 1 lần/bài.")
                         
-                        # Tính tổng lượt xem của từng bài
-                        summary_df = df.groupby(['postId', 'postTitle']).size().reset_index(name='Số lượt xem')
-                        summary_df = summary_df.sort_values(by='Số lượt xem', ascending=False).reset_index(drop=True)
+                        # Tạo bảng chéo Pivot Table
+                        pivot_df = df_unique.pivot_table(
+                            index='Tiêu đề bài viết', 
+                            columns='Loại tương tác', 
+                            values='ipAddress', 
+                            aggfunc='count', 
+                            fill_value=0
+                        )
                         
-                        col_chart, col_table = st.columns([1, 1])
-                        with col_chart:
-                            st.bar_chart(df['postTitle'].value_counts())
-                        with col_table:
-                            st.dataframe(summary_df, use_container_width=True)
+                        # Thêm cột tính Tổng số lượt cho bài đó
+                        pivot_df['Tổng Lượt (Unique IP)'] = pivot_df.sum(axis=1)
+                        pivot_df = pivot_df.sort_values(by='Tổng Lượt (Unique IP)', ascending=False).reset_index()
+                        
+                        st.dataframe(pivot_df, use_container_width=True)
                         
                         st.markdown("---")
                         
-                        # 3. THỐNG KÊ THIẾT BỊ & HỆ ĐIỀU HÀNH
+                        # --- HIỂN THỊ 3. THỐNG KÊ THIẾT BỊ ---
                         c_os, c_device = st.columns(2)
+                        # Để thống kê thiết bị chuẩn, ta lọc IP trên toàn bộ dữ liệu (Mỗi IP đại diện 1 máy)
+                        df_device = df.drop_duplicates(subset=['ipAddress'])
+                        
                         with c_os:
                             st.markdown("### Phiên bản Android")
-                            st.bar_chart(df['osVersion'].value_counts())
+                            st.bar_chart(df_device['osVersion'].value_counts())
                         with c_device:
                             st.markdown("### Dòng máy (Model)")
-                            st.dataframe(df['deviceModel'].value_counts(), use_container_width=True)
+                            st.dataframe(df_device['deviceModel'].value_counts(), use_container_width=True)
 
-                        # 4. NHẬT KÝ RAW (Bao gồm IP)
+                        # --- HIỂN THỊ 4. DỮ LIỆU THÔ ---
                         st.markdown("---")
-                        with st.expander("Bảng dữ liệu thô chi tiết (Lịch sử truy cập)"):
-                            st.dataframe(df[['timeStr', 'postTitle', 'ipAddress', 'deviceModel', 'osVersion']], use_container_width=True)
+                        with st.expander("Bảng dữ liệu thô (Lịch sử truy cập chi tiết)"):
+                            st.dataframe(df[['timeStr', 'ipAddress', 'Loại tương tác', 'Tiêu đề bài viết', 'deviceModel', 'osVersion']], use_container_width=True)
                             
                 else:
                     st.error(f"Lỗi tải dữ liệu: {resp.text}")
