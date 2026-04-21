@@ -14,9 +14,6 @@ import threading
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(page_title="Quản Trị Radio Mặt Trận", page_icon="☭", layout="wide")
 
-# =====================================================================
-# TÍNH NĂNG MỚI: ÂM THẦM ĐÁNH THỨC RENDER SERVER (PRE-WARM)
-# =====================================================================
 if "render_woken" not in st.session_state:
     def ping_render():
         try:
@@ -26,12 +23,10 @@ if "render_woken" not in st.session_state:
             pass 
     threading.Thread(target=ping_render, daemon=True).start()
     st.session_state.render_woken = True
-# =====================================================================
 
 # --- CẤU HÌNH KHO DỮ LIỆU (REPOSITORY) ---
 REPO_NAME = "snnmt/radiomattran" 
 
-# CẤU HÌNH MAPPING: Chuyên mục -> Thư mục trên GitHub
 CATEGORY_MAP = {
     "Tin Hoạt Động": "tinhoatdong/",
     "Đại Đoàn Kết": "daidoanket/",
@@ -45,7 +40,6 @@ FOLDER_AUDIO = "amthanh/"
 FOLDER_IMAGE = "hinhanh/" 
 FILE_JSON_DATA = "danh_sach_tai_lieu.json"
 
-# --- KIỂM TRA MẬT KHẨU ---
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -65,21 +59,14 @@ if not st.session_state.authenticated:
         st.text_input("Mật khẩu quản trị:", type="password", key="password_input", on_change=check_password)
     st.stop()
 
-# =================================================================================
-# KHI ĐÃ ĐĂNG NHẬP
-# =================================================================================
-
 st.title("☭ Hệ Thống Quản Trị Radio Mặt Trận")
 st.caption(f"Đang kết nối tới kho dữ liệu: {REPO_NAME}")
 
-# --- KẾT NỐI GITHUB ---
 try:
     GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 except:
     st.error("⚠️ Thiếu GITHUB_TOKEN.")
     st.stop()
-
-# --- CÁC HÀM HỖ TRỢ ---
 
 def get_github_repo():
     g = Github(GITHUB_TOKEN)
@@ -119,24 +106,22 @@ def push_json_to_github(data_list, sha, message):
         updated_json = json.dumps(data_list, ensure_ascii=False, indent=4)
         repo.create_file(FILE_JSON_DATA, message, updated_json)
 
-# HÀM MỚI: XÓA FILE VẬT LÝ TRÊN GITHUB ĐỂ DỌN RÁC
 def delete_file_from_github(repo, file_url):
     if not file_url or "logo_mac_dinh" in file_url:
         return
     try:
-        # Cắt lấy đường dẫn tương đối (từ sau chữ main/)
         path = file_url.split("main/")[-1]
         contents = repo.get_contents(path)
         repo.delete_file(contents.path, f"Delete {path}", contents.sha)
     except Exception as e:
-        pass # Bỏ qua nếu file không tồn tại
+        pass 
 
-# --- CHIA GIAO DIỆN THÀNH 2 TAB ---
-tab1, tab2 = st.tabs(["➕ ĐĂNG BẢN TIN MỚI", "🛠️ QUẢN LÝ & CHỈNH SỬA"])
+# =====================================================================
+# CHIA GIAO DIỆN THÀNH 3 TAB
+# =====================================================================
+tab1, tab2, tab3 = st.tabs(["➕ ĐĂNG BẢN TIN MỚI", "🛠️ QUẢN LÝ & CHỈNH SỬA", "📊 THỐNG KÊ CHI TIẾT"])
 
-# =================================================================================
-# TAB 1: ĐĂNG BÀI MỚI
-# =================================================================================
+# --- TAB 1: ĐĂNG BÀI MỚI ---
 with tab1:
     st.subheader("Soạn Thảo Bản Tin Mặt Trận")
     
@@ -296,9 +281,7 @@ with tab1:
                 except Exception as e:
                     st.error(f"Lỗi kết nối API thông báo: {e}")
 
-# =================================================================================
-# TAB 2: QUẢN LÝ
-# =================================================================================
+# --- TAB 2: QUẢN LÝ ---
 with tab2:
     st.subheader("Danh Sách Bản Tin Đang Có")
     
@@ -412,14 +395,12 @@ with tab2:
                     repo = get_github_repo()
                     
                     if new_image:
-                        # Có thể thêm lệnh xóa ảnh cũ ở đây nếu muốn tối ưu hơn
                         selected_item["image_url"] = upload_file_to_github(new_image, FOLDER_IMAGE, repo)
                     if new_pdf:
                         target_folder = CATEGORY_MAP.get(new_cat, "tinkhac/")
                         selected_item["pdf_url"] = upload_file_to_github(new_pdf, target_folder, repo)
                     
                     if need_replace_audio:
-                        # Xóa file audio cũ trước khi thay mới
                         delete_file_from_github(repo, selected_item.get("audio_url"))
                         
                         if edit_audio_source == "🗑️ Xóa âm thanh (Dành cho Video)":
@@ -468,12 +449,10 @@ with tab2:
                     with st.spinner("Đang xóa bản tin và dọn dẹp file..."):
                         repo = get_github_repo()
                         
-                        # Xóa triệt để các file vật lý trên GitHub
                         delete_file_from_github(repo, selected_item.get("audio_url"))
                         delete_file_from_github(repo, selected_item.get("image_url"))
                         delete_file_from_github(repo, selected_item.get("pdf_url"))
 
-                        # Cập nhật file JSON
                         full_data, sha = get_data_from_github()
                         filtered_data = [x for x in full_data if x.get("id") != selected_item.get("id")]
                         push_json_to_github(filtered_data, sha, f"Delete ID {selected_item.get('id')}")
@@ -482,3 +461,57 @@ with tab2:
                         st.success("Đã xóa vĩnh viễn!")
                         time.sleep(1)
                         st.rerun()
+
+# --- TAB 3: THỐNG KÊ CHI TIẾT ---
+with tab3:
+    st.subheader("Báo Cáo Tương Tác & Lượt Xem")
+    
+    if st.button("🔄 Cập nhật số liệu"):
+        with st.spinner("Đang tải dữ liệu từ máy chủ..."):
+            try:
+                # Gọi API Render để lấy data
+                api_url = "https://radiomt.onrender.com/admin/stats"
+                headers = {"Authorization": "Bearer RadioMatTran2026_Secret"}
+                resp = requests.get(api_url, headers=headers, timeout=15)
+                
+                if resp.status_code == 200:
+                    raw_data = resp.json()
+                    if not raw_data:
+                        st.info("Chưa có lượt xem nào được ghi nhận.")
+                    else:
+                        df = pd.DataFrame(raw_data)
+                        
+                        # 1. TỔNG QUAN
+                        st.markdown("### 1. Tổng quan")
+                        c1, c2, c3 = st.columns(3)
+                        c1.metric("Tổng lượt nghe/xem", f"{len(df)} lượt")
+                        c2.metric("Số thiết bị độc lập (Ước tính IP)", f"{df['ipAddress'].nunique()} máy")
+                        c3.metric("Bản tin Hot nhất", f"{df['postTitle'].mode()[0]}")
+                        
+                        st.markdown("---")
+                        
+                        # 2. BIỂU ĐỒ BÀI VIẾT ĐƯỢC XEM NHIỀU NHẤT
+                        st.markdown("### 2. Lượt tương tác theo bản tin")
+                        view_counts = df['postTitle'].value_counts()
+                        st.bar_chart(view_counts)
+                        
+                        st.markdown("---")
+                        
+                        # 3. THỐNG KÊ THIẾT BỊ & HỆ ĐIỀU HÀNH
+                        c_os, c_device = st.columns(2)
+                        with c_os:
+                            st.markdown("### Phiên bản Android")
+                            st.bar_chart(df['osVersion'].value_counts())
+                        with c_device:
+                            st.markdown("### Dòng máy (Model)")
+                            st.dataframe(df['deviceModel'].value_counts(), use_container_width=True)
+
+                        # 4. NHẬT KÝ RAW (Bao gồm IP)
+                        st.markdown("---")
+                        with st.expander("Bảng dữ liệu thô chi tiết (Lịch sử truy cập)"):
+                            st.dataframe(df[['timeStr', 'postTitle', 'ipAddress', 'deviceModel', 'osVersion']], use_container_width=True)
+                            
+                else:
+                    st.error(f"Lỗi tải dữ liệu: {resp.text}")
+            except Exception as e:
+                st.error(f"Không thể kết nối máy chủ thống kê. Vui lòng thử lại sau: {e}")
